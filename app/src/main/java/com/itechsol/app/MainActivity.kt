@@ -1,38 +1,91 @@
+@file:Suppress("DEPRECATION")
+
 package com.itechsol.app
 
+import android.annotation.SuppressLint
+import android.app.ProgressDialog
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
+import android.view.KeyEvent
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import android.view.Menu
-import android.view.MenuItem
+import kotlinx.android.synthetic.main.activity_main.*
 
+@SuppressLint("SetJavaScriptEnabled")
 class MainActivity : AppCompatActivity() {
+
+    //--------------------------------------------------
+    // Activity Life Cycle
+    //--------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById(R.id.toolbar))
+        initLayout()
+    }
 
-        findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+    //--------------------------------------------------
+    // Layout Methods
+    //--------------------------------------------------
+
+    private fun initLayout() {
+        activity_main__button.setOnClickListener {
+            setWebView()
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
+    //--------------------------------------------------
+    // WebView Methods
+    //--------------------------------------------------
+
+    private fun setWebView() {
+        val progressBar = ProgressDialog.show(
+            this, getString(R.string.loading_url), getString(R.string.opening_url))
+
+        val webView = activity_main__web_view
+        val context = this
+        with(webView) {
+            settings.javaScriptEnabled = true
+            webViewClient = MyWebViewClient(context, progressBar)
+            loadUrl("https://www.androidpro.com.br/blog/")
+        }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
+    //--------------------------------------------------
+    // WebView Client
+    //--------------------------------------------------
+
+    private class MyWebViewClient(val activity: MainActivity, val progressBar: ProgressDialog): WebViewClient() {
+        /**
+         * If it returns True, keeps the navigation inside the WebView.
+         * Else, when a link is clicked, open Web Browser and leave the WebView.
+         */
+        override fun shouldOverrideUrlLoading(webView: WebView?, url: String): Boolean {
+            if (url.contains("androidpro.com.br")) return false
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            activity.startActivity(intent)
+            return true
         }
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            super.onPageStarted(view, url, favicon)
+            // TODO
+        }
+        override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+            if (progressBar.isShowing) {
+                progressBar.dismiss()
+            }
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && activity_main__web_view.canGoBack()) {
+            activity_main__web_view.goBack()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }
